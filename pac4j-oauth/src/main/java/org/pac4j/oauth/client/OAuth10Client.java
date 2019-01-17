@@ -6,9 +6,8 @@ import org.pac4j.oauth.config.OAuth10Configuration;
 import org.pac4j.oauth.credentials.OAuth10Credentials;
 import org.pac4j.oauth.credentials.authenticator.OAuth10Authenticator;
 import org.pac4j.oauth.credentials.extractor.OAuth10CredentialsExtractor;
-import org.pac4j.oauth.profile.OAuth10Profile;
 import org.pac4j.oauth.profile.creator.OAuth10ProfileCreator;
-import org.pac4j.oauth.redirect.OAuth10RedirectActionBuilder;
+import org.pac4j.oauth.redirect.OAuth10RedirectionActionBuilder;
 
 /**
  * The generic OAuth 1.0 client.
@@ -16,13 +15,13 @@ import org.pac4j.oauth.redirect.OAuth10RedirectActionBuilder;
  * @author Jerome Leleu
  * @since 2.0.0
  */
-public class OAuth10Client<U extends OAuth10Profile> extends IndirectClient<OAuth10Credentials, U> {
+public class OAuth10Client extends IndirectClient<OAuth10Credentials> {
 
     protected OAuth10Configuration configuration = new OAuth10Configuration();
 
     @Override
     protected void clientInit() {
-        defaultRedirectActionBuilder(new OAuth10RedirectActionBuilder(configuration, this));
+        defaultRedirectionActionBuilder(new OAuth10RedirectionActionBuilder(configuration, this));
         defaultCredentialsExtractor(new OAuth10CredentialsExtractor(configuration, this));
         defaultAuthenticator(new OAuth10Authenticator(configuration, this));
         defaultProfileCreator(new OAuth10ProfileCreator<>(configuration, this));
@@ -56,7 +55,7 @@ public class OAuth10Client<U extends OAuth10Profile> extends IndirectClient<OAut
     public String toString() {
         return CommonHelper.toNiceString(this.getClass(), "name", getName(), "callbackUrl", getCallbackUrl(),
                 "callbackUrlResolver", getCallbackUrlResolver(), "ajaxRequestResolver", getAjaxRequestResolver(),
-                "redirectActionBuilder", getRedirectActionBuilder(), "credentialsExtractor", getCredentialsExtractor(),
+                "redirectionActionBuilder", getRedirectionActionBuilder(), "credentialsExtractor", getCredentialsExtractor(),
                 "authenticator", getAuthenticator(), "profileCreator", getProfileCreator(), "configuration", this.configuration);
     }
 }

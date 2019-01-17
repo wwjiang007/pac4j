@@ -3,7 +3,6 @@ package org.pac4j.core.profile;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.pac4j.core.exception.TechnicalException;
 import org.pac4j.core.profile.definition.ProfileDefinition;
@@ -20,8 +19,6 @@ import org.slf4j.LoggerFactory;
 public final class ProfileHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(ProfileHelper.class);
-
-    private static final Map<String, Constructor<? extends CommonProfile>> constructorsCache = new ConcurrentHashMap<>();
 
     private ProfileHelper() {}
 
@@ -51,7 +48,7 @@ public final class ProfileHelper {
      * @param parameters additional parameters for the profile definition
      * @return the restored or built profile
      */
-    public static CommonProfile restoreOrBuildProfile(final ProfileDefinition<? extends CommonProfile> profileDefinition, 
+    public static CommonProfile restoreOrBuildProfile(final ProfileDefinition<? extends CommonProfile> profileDefinition,
             final String typedId, final Map<String, Object> profileAttributes, final Map<String, Object> authenticationAttributes,
             final Object... parameters) {
         if (CommonHelper.isBlank(typedId)) {
@@ -86,7 +83,7 @@ public final class ProfileHelper {
      */
     public static CommonProfile buildUserProfileByClassCompleteName(final String completeName) {
         try {
-            final Constructor<? extends CommonProfile> constructor = getConstructor(completeName);
+            final Constructor<? extends CommonProfile> constructor = CommonHelper.getConstructor(completeName);
             return constructor.newInstance();
         } catch (final ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException
                  | InstantiationException e) {
@@ -95,44 +92,19 @@ public final class ProfileHelper {
     }
 
     /**
-     * Get the constructor of the class.
-     *
-     * @param name the name of the class
-     * @return the constructor
-     * @throws ClassNotFoundException class not found
-     * @throws NoSuchMethodException method not found
-     */
-    @SuppressWarnings("unchecked")
-    private static Constructor<? extends CommonProfile> getConstructor(final String name)
-        throws ClassNotFoundException, NoSuchMethodException {
-        Constructor<? extends CommonProfile> constructor = constructorsCache.get(name);
-        if (constructor == null) {
-            synchronized (constructorsCache) {
-                constructor = constructorsCache.get(name);
-                if (constructor == null) {
-                    ClassLoader tccl = Thread.currentThread().getContextClassLoader();
-
-                    if (tccl == null) {
-                        constructor = (Constructor<? extends CommonProfile>) Class.forName(name).getDeclaredConstructor();
-                    } else {
-                        constructor = (Constructor<? extends CommonProfile>) Class.forName(name, true, tccl).getDeclaredConstructor();
-                    }
-                    constructorsCache.put(name, constructor);
-                }
-            }
-        }
-        return constructor;
-    }
-
-    /**
-     * Flat the list of profiles into a single optional profile.
+     * Flat the list of profiles into a single optional profile (skip any anonymous profile unless it's the only one).
      *
      * @param profiles the list of profiles
      * @param <U> the kind of profile
      * @return the (optional) profile
      */
-    public static <U extends CommonProfile> Optional<U> flatIntoOneProfile(final Collection<U> profiles) {
-        return profiles.stream().filter(p -> p != null && !(p instanceof AnonymousProfile)).findFirst();
+    public static <U extends UserProfile> Optional<U> flatIntoOneProfile(final Collection<U> profiles) {
+        final Optional<U> profile = profiles.stream().filter(p -> p != null && !(p instanceof AnonymousProfile)).findFirst();
+        if (profile.isPresent()) {
+            return profile;
+        } else {
+            return profiles.stream().filter(p -> p != null).findFirst();
+        }
     }
 
     /**
@@ -142,7 +114,7 @@ public final class ProfileHelper {
      * @param <U> the kind of profile
      * @return the list of profiles
      */
-    public static <U extends CommonProfile> List<U> flatIntoAProfileList(final Map<String, U> profiles) {
+    public static <U extends UserProfile> List<U> flatIntoAProfileList(final Map<String, U> profiles) {
         return new ArrayList<>(profiles.values());
     }
 
@@ -153,11 +125,11 @@ public final class ProfileHelper {
      * @param id the identifier object
      * @return the sanitized identifier
      */
-    public static String sanitizeIdentifier(final UserProfile profile, final Object id) {
+    public static String sanitizeIdentifier(final BasicUserProfile profile, final Object id) {
         if (id != null) {
             String sId = id.toString();
             if (profile != null) {
-                final String type = profile.getClass().getName() + UserProfile.SEPARATOR;
+                final String type = profile.getClass().getName() + BasicUserProfile.SEPARATOR;
                 if (sId.startsWith(type)) {
                     sId = sId.substring(type.length());
                 }

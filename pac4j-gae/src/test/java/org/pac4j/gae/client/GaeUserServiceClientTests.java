@@ -6,8 +6,10 @@ import com.google.appengine.tools.development.testing.LocalUserServiceTestConfig
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.pac4j.core.context.HttpConstants;
 import org.pac4j.core.context.Pac4jConstants;
-import org.pac4j.core.redirect.RedirectAction;
+import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.exception.http.FoundAction;
 import org.pac4j.core.context.MockWebContext;
 import org.pac4j.core.exception.TechnicalException;
 import org.pac4j.core.profile.CommonProfile;
@@ -20,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.*;
-import static org.pac4j.core.redirect.RedirectAction.*;
 
 /**
  * Tests the {@link GaeUserServiceClient}.
@@ -61,10 +62,10 @@ public final class GaeUserServiceClientTests implements TestsConstants {
 
     @Test
     public void testRedirect() {
-        final RedirectAction redirectAction = client.getRedirectAction(context);
-        assertEquals(RedirectType.REDIRECT, redirectAction.getType());
+        final HttpAction action = client.redirect(context);
+        assertEquals(HttpConstants.FOUND, action.getCode());
         assertEquals("/_ah/login?continue=" + CommonHelper.urlEncode(CALLBACK_URL + "?" +
-            Pac4jConstants.DEFAULT_CLIENT_NAME_PARAMETER + "=" + client.getName()), redirectAction.getLocation());
+            Pac4jConstants.DEFAULT_CLIENT_NAME_PARAMETER + "=" + client.getName()), ((FoundAction) action).getLocation());
     }
 
     @Test
@@ -73,7 +74,7 @@ public final class GaeUserServiceClientTests implements TestsConstants {
         final User user = credentials.getUser();
         assertEquals(EMAIL, user.getEmail());
         assertEquals("", user.getAuthDomain());
-        final GaeUserServiceProfile profile = client.getUserProfile(credentials, context);
+        final GaeUserServiceProfile profile = (GaeUserServiceProfile) client.getUserProfile(credentials, context);
         logger.debug("userProfile: {}", profile);
         assertEquals(EMAIL, profile.getId());
         assertEquals(GaeUserServiceProfile.class.getName() + CommonProfile.SEPARATOR + EMAIL, profile.getTypedId());

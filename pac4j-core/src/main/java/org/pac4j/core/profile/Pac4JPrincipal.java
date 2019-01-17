@@ -8,7 +8,7 @@ import org.pac4j.core.util.CommonHelper;
 /**
  * 
  * Default implementation for {@link Principal} based on a pac4j
- * {@link UserProfile}.
+ * {@link BasicUserProfile}.
  * 
  * It determines the name based on the profile's username, and fallbacks to id
  * if it doesn't exist.
@@ -20,7 +20,7 @@ public class Pac4JPrincipal implements Principal {
 
     private final String name;
 
-    public Pac4JPrincipal(CommonProfile profile) {
+    public Pac4JPrincipal(final UserProfile profile) {
         String username = profile.getUsername();
         if (CommonHelper.isNotBlank(username)) {
             this.name = username;

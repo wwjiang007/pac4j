@@ -34,23 +34,23 @@ You can also add **matchers** to define whether the security must apply or not.
 
 ## 3) "Filters/controllers"
 
-To secure your Java web application, **the reference implementation is to create three "filters/controllers"**:
+To secure your Java web application, **the reference implementation is to create one filter and two endpoints**:
 
-- one to **protect urls**
-- another one to **receive callbacks** for stateful authentication processes (indirect clients)
-- the last one **to perform logout**.
+- one filter to **protect urls**
+- one endpoint to **receive callbacks** for stateful authentication processes (indirect clients)
+- another endpoint **to perform logout**.
 
 In your framework, you will need to create:
 
-1) a specific `EnvSpecificWebContext` implementing the [`WebContext`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/context/WebContext.java) interface except for J2E environment where you can already use the existing `J2EContext`.
+1) a specific `EnvSpecificWebContext` implementing the [`WebContext`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/context/WebContext.java) interface except for JEE environment where you can already use the existing `JEEContext`.
 Your `EnvSpecificWebContext` should delegate to a [`SessionStore`](session-store.html) the calls regarding the web session management
 
 2) optionally a specific `EnvSpecificHttpActionAdapter` implementing the [`HttpActionAdapter`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/http/HttpActionAdapter.java) if you need to turn actions performed on the web context into specific framework actions.
 
 
-### A) Secure an url
+### A) Secure an URL
 
-The logic to secure an url is defined by the `SecurityLogic` interface and its default implementation: [`DefaultSecurityLogic`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/engine/DefaultSecurityLogic.java). In your framework, you must define the appropriate "filter", "interceptor", "controller" or whatever the mechanism used to intercept the HTTP request and delegate to the `SecurityLogic` class:
+The logic to secure an URL is defined by the `SecurityLogic` interface and its default implementation: [`DefaultSecurityLogic`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/engine/DefaultSecurityLogic.java). In your framework, you must define the appropriate "filter", "interceptor", "controller" or whatever the mechanism used to intercept the HTTP request and delegate to the `SecurityLogic` class:
 
 1) If the HTTP request matches the **matchers** configuration (or no **matchers** are defined), the security is applied. Otherwise, the user is automatically granted access
 
@@ -62,7 +62,7 @@ The logic to secure an url is defined by the `SecurityLogic` interface and its d
 
 **Examples**:
 
-- In J2E:
+- In JEE:
 
 ```java
     @Override
@@ -75,11 +75,10 @@ The logic to secure an url is defined by the `SecurityLogic` interface and its d
         assertNotNull("config", config);
         final J2EContext context = new J2EContext(request, response, config.getSessionStore());
 
-        securityLogic.perform(context, config, (ctx, parameters) -> {
-
-            filterChain.doFilter(request, response);
+        securityLogic.perform(context, config, (ctx, profiles, parameters) -> {
+            // if no profiles are loaded, pac4j is not concerned with this request
+            filterChain.doFilter(profiles.isEmpty() ? request : new Pac4JHttpServletRequestWrapper(request, profiles), response);
             return null;
-
         }, J2ENopHttpActionAdapter.INSTANCE, clients, authorizers, matchers, multiProfile);
     }
 ```
@@ -87,21 +86,24 @@ The logic to secure an url is defined by the `SecurityLogic` interface and its d
 - In Play:
 
 ```java
-    public CompletionStage<Result> internalCall(final Context ctx, final String clients, final String authorizers, final boolean multiProfile) throws Throwable {
+    public CompletionStage<Result> internalCall(final Context ctx, final String clients, final String authorizers, final String matchers, final boolean multiProfile) throws Throwable {
 
         assertNotNull("securityLogic", securityLogic);
+
         assertNotNull("config", config);
         final PlayWebContext playWebContext = new PlayWebContext(ctx, sessionStore);
-        final HttpActionAdapterWrapper actionAdapterWrapper = new HttpActionAdapterWrapper(config.getHttpActionAdapter());
+        final HttpActionAdapter<Result, WebContext> actionAdapter = config.getHttpActionAdapter();
+        assertNotNull("actionAdapter", actionAdapter);
+        final HttpActionAdapter<CompletionStage<Result>, PlayWebContext> actionAdapterWrapper = (code, webCtx) -> CompletableFuture.completedFuture(actionAdapter.adapt(code, webCtx));
 
-        return securityLogic.perform(playWebContext, config, (webCtx, parameters) -> {
-            // when called from Scala
-            if (delegate == null) {
-                return CompletableFuture.completedFuture(null);
-            } else {
-                return delegate.call(ctx);
-            }
-        }, actionAdapterWrapper, clients, authorizers, null, multiProfile, ctx);
+        return securityLogic.perform(playWebContext, config, (webCtx, profiles, parameters) -> {
+	            // when called from Scala
+	            if (delegate == null) {
+	                return CompletableFuture.completedFuture(null);
+	            } else {
+	                return delegate.call(ctx);
+	            }
+            }, actionAdapterWrapper, clients, authorizers, matchers, multiProfile);
     }
 ```
 
@@ -113,11 +115,11 @@ In your framework, you must define the appropriate "controller" to reply to an H
 
 1) the credentials are extracted from the current request to fetch the user profile (from the identity provider) which is then saved in the web session.
 
-2) finally, the user is redirected back to the originally requested url (or to the **defaultUrl**).
+2) finally, the user is redirected back to the originally requested URL (or to the **defaultUrl**).
 
 **Examples**:
 
-- In J2E:
+- In JEE:
 
 ```java
     @Override
@@ -130,20 +132,21 @@ In your framework, you must define the appropriate "controller" to reply to an H
         assertNotNull("config", config);
         final J2EContext context = new J2EContext(request, response, config.getSessionStore());
 
-        callbackLogic.perform(context, config, J2ENopHttpActionAdapter.INSTANCE, this.defaultUrl, this.multiProfile, this.renewSession);
+        callbackLogic.perform(context, config, J2ENopHttpActionAdapter.INSTANCE, this.defaultUrl, this.saveInSession, this.multiProfile, this.renewSession, this.defaultClient);
     }
 ```
 
 - In Play:
 
 ```java
-    public Result callback() {
+    public CompletionStage<Result> callback() {
 
         assertNotNull("callbackLogic", callbackLogic);
+
         assertNotNull("config", config);
         final PlayWebContext playWebContext = new PlayWebContext(ctx(), playSessionStore);
 
-        return callbackLogic.perform(playWebContext, config, config.getHttpActionAdapter(), this.defaultUrl, this.multiProfile, false);
+        return CompletableFuture.supplyAsync(() -> callbackLogic.perform(playWebContext, config, config.getHttpActionAdapter(), this.defaultUrl, this.saveInSession, this.multiProfile, false, this.defaultClient), ec.current());
     }
 ```
 
@@ -161,7 +164,7 @@ In your framework, you must define the appropriate "controller" to reply to an H
 
 **Examples**:
 
-- In J2E:
+- In JEE:
 
 ```java
     @Override
@@ -181,12 +184,14 @@ In your framework, you must define the appropriate "controller" to reply to an H
 - In Play:
 
 ```java
-    public Result logout() {
+    public CompletionStage<Result> logout() {
 
         assertNotNull("logoutLogic", logoutLogic);
+
         assertNotNull("config", config);
         final PlayWebContext playWebContext = new PlayWebContext(ctx(), playSessionStore);
 
-        return logoutLogic.perform(playWebContext, config, config.getHttpActionAdapter(), this.defaultUrl, this.logoutUrlPattern, this.localLogout, this.destroySession, this.centralLogout);
+        return CompletableFuture.supplyAsync(() -> logoutLogic.perform(playWebContext, config, config.getHttpActionAdapter(), this.defaultUrl,
+                this.logoutUrlPattern, this.localLogout, this.destroySession, this.centralLogout), ec.current());
     }
 ```

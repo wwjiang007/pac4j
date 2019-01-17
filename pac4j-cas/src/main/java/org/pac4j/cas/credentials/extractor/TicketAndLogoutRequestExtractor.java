@@ -3,13 +3,14 @@ package org.pac4j.cas.credentials.extractor;
 import java.util.Base64;
 import org.jasig.cas.client.util.CommonUtils;
 import org.pac4j.cas.config.CasConfiguration;
-import org.pac4j.cas.logout.CasLogoutHandler;
+import org.pac4j.core.exception.http.NoContentAction;
+import org.pac4j.core.exception.http.FoundAction;
+import org.pac4j.core.logout.handler.LogoutHandler;
 import org.pac4j.core.context.ContextHelper;
 import org.pac4j.core.context.HttpConstants;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.credentials.TokenCredentials;
 import org.pac4j.core.credentials.extractor.CredentialsExtractor;
-import org.pac4j.core.exception.HttpAction;
 import org.pac4j.core.exception.TechnicalException;
 import org.pac4j.core.util.CommonHelper;
 import org.slf4j.Logger;
@@ -38,14 +39,12 @@ public class TicketAndLogoutRequestExtractor implements CredentialsExtractor<Tok
 
     @Override
     public TokenCredentials extract(final WebContext context) {
-        final CasLogoutHandler logoutHandler = configuration.findLogoutHandler();
+        final LogoutHandler logoutHandler = configuration.findLogoutHandler();
 
         // like the SingleSignOutFilter from the Apereo CAS client:
         if (isTokenRequest(context)) {
             final String ticket = context.getRequestParameter(CasConfiguration.TICKET_PARAMETER);
-            if (logoutHandler != null) {
-                logoutHandler.recordSession(context, ticket);
-            }
+            logoutHandler.recordSession(context, ticket);
             final TokenCredentials casCredentials = new TokenCredentials(ticket);
             logger.debug("casCredentials: {}", casCredentials);
             return casCredentials;
@@ -55,18 +54,18 @@ public class TicketAndLogoutRequestExtractor implements CredentialsExtractor<Tok
             logger.trace("Logout request:\n{}", logoutMessage);
 
             final String ticket = CommonHelper.substringBetween(logoutMessage, CasConfiguration.SESSION_INDEX_TAG + ">", "</");
-            if (CommonUtils.isNotBlank(ticket) && logoutHandler != null) {
+            if (CommonUtils.isNotBlank(ticket)) {
                 logoutHandler.destroySessionBack(context, ticket);
             }
             logger.debug("back logout request: no credential returned");
-            throw HttpAction.noContent(context);
+            throw NoContentAction.INSTANCE;
 
         } else if (isFrontLogoutRequest(context)) {
             final String logoutMessage = uncompressLogoutMessage(context.getRequestParameter(CasConfiguration.LOGOUT_REQUEST_PARAMETER));
             logger.trace("Logout request:\n{}", logoutMessage);
 
             final String ticket = CommonHelper.substringBetween(logoutMessage, CasConfiguration.SESSION_INDEX_TAG + ">", "</");
-            if (CommonUtils.isNotBlank(ticket) && logoutHandler != null) {
+            if (CommonUtils.isNotBlank(ticket)) {
                 logoutHandler.destroySessionFront(context, ticket);
             }
             logger.debug("front logout request: no credential returned");
@@ -136,7 +135,7 @@ public class TicketAndLogoutRequestExtractor implements CredentialsExtractor<Tok
             buffer.append(CommonUtils.urlEncode(relayStateValue));
             final String redirectUrl = buffer.toString();
             logger.debug("Redirection url to the CAS server: {}", redirectUrl);
-            throw HttpAction.redirect(context, redirectUrl);
+            throw new FoundAction(redirectUrl);
         }
     }
 }

@@ -1,11 +1,10 @@
 package org.pac4j.core.client;
 
 import org.pac4j.core.context.WebContext;
-import org.pac4j.core.exception.HttpAction;
 import org.pac4j.core.exception.TechnicalException;
-import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.core.credentials.Credentials;
-import org.pac4j.core.redirect.RedirectAction;
+import org.pac4j.core.exception.http.RedirectionAction;
+import org.pac4j.core.profile.UserProfile;
 import org.pac4j.core.util.CommonHelper;
 
 /**
@@ -14,7 +13,7 @@ import org.pac4j.core.util.CommonHelper;
  * @author Jerome Leleu
  * @since 1.9.0
  */
-public abstract class DirectClient<C extends Credentials, U extends CommonProfile> extends BaseClient<C, U> {
+public abstract class DirectClient<C extends Credentials> extends BaseClient<C> {
 
     @Override
     protected final void internalInit() {
@@ -32,7 +31,7 @@ public abstract class DirectClient<C extends Credentials, U extends CommonProfil
     protected abstract void clientInit();
 
     @Override
-    public final HttpAction redirect(final WebContext context) {
+    public final RedirectionAction redirect(final WebContext context) {
         throw new TechnicalException("direct clients do not support redirections");
     }
 
@@ -43,7 +42,7 @@ public abstract class DirectClient<C extends Credentials, U extends CommonProfil
     }
 
     @Override
-    public final RedirectAction getLogoutAction(final WebContext context, final U currentProfile, final String targetUrl) {
+    public final RedirectionAction getLogoutAction(final WebContext context, final UserProfile currentProfile, final String targetUrl) {
         return null;
     }
 }

@@ -5,7 +5,7 @@ import org.pac4j.core.authorization.authorizer.IsAuthenticatedAuthorizer;
 import org.pac4j.core.context.Pac4jConstants;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.context.session.SessionStore;
-import org.pac4j.core.exception.HttpAction;
+import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.exception.TechnicalException;
 import org.pac4j.core.util.CommonHelper;
 
@@ -17,7 +17,7 @@ import java.util.*;
  * @author Jerome Leleu
  * @since 1.8.0
  */
-public class ProfileManager<U extends CommonProfile> {
+public class ProfileManager<U extends UserProfile> {
 
     private final Authorizer<U> IS_AUTHENTICATED_AUTHORIZER = new IsAuthenticatedAuthorizer<U>();
 

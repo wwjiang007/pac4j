@@ -1,7 +1,7 @@
 package org.pac4j.oauth.client;
 
 import com.github.scribejava.apis.Foursquare2Api;
-import org.pac4j.core.redirect.RedirectAction;
+import org.pac4j.core.exception.http.FoundAction;
 import org.pac4j.core.util.CommonHelper;
 import org.pac4j.oauth.profile.foursquare.FoursquareProfile;
 import org.pac4j.oauth.profile.foursquare.FoursquareProfileCreator;
@@ -9,13 +9,13 @@ import org.pac4j.oauth.profile.foursquare.FoursquareProfileDefinition;
 
 /**
  * <p>This class is the OAuth client to authenticate users in Foursquare.
- * It returns a {@link org.pac4j.oauth.profile.foursquare.FoursquareProfile}.</p>
+ * It returns a {@link FoursquareProfile}.</p>
  * <p>More information at https://developer.foursquare.com/overview/auth.html</p>
  *
  * @author Alexey Ogarkov
  * @since 1.5.0
  */
-public class FoursquareClient extends OAuth20Client<FoursquareProfile>{
+public class FoursquareClient extends OAuth20Client {
 
     public FoursquareClient() {}
 
@@ -31,7 +31,7 @@ public class FoursquareClient extends OAuth20Client<FoursquareProfile>{
         configuration.setProfileDefinition(new FoursquareProfileDefinition());
         configuration.setScope("user");
         defaultProfileCreator(new FoursquareProfileCreator(configuration, this));
-        defaultLogoutActionBuilder((ctx, profile, targetUrl) -> RedirectAction.redirect("https://www.foursquare.com/logout"));
+        defaultLogoutActionBuilder((ctx, profile, targetUrl) -> new FoundAction("https://www.foursquare.com/logout"));
 
         super.clientInit();
     }

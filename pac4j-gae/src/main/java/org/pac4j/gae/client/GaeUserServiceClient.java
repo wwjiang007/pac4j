@@ -3,8 +3,8 @@ package org.pac4j.gae.client;
 import static org.pac4j.core.profile.AttributeLocation.PROFILE_ATTRIBUTE;
 
 import org.pac4j.core.client.IndirectClient;
+import org.pac4j.core.exception.http.FoundAction;
 import org.pac4j.core.profile.definition.ProfileDefinition;
-import org.pac4j.core.redirect.RedirectAction;
 import org.pac4j.core.profile.definition.CommonProfileDefinition;
 import org.pac4j.core.util.CommonHelper;
 import org.pac4j.gae.credentials.GaeUserCredentials;
@@ -20,7 +20,7 @@ import com.google.appengine.api.users.UserServiceFactory;
  * @author Patrice de Saint Steban
  * @since 1.6.0
  */
-public class GaeUserServiceClient extends IndirectClient<GaeUserCredentials, GaeUserServiceProfile> {
+public class GaeUserServiceClient extends IndirectClient<GaeUserCredentials> {
 
     private static final ProfileDefinition<GaeUserServiceProfile> PROFILE_DEFINITION
         = new CommonProfileDefinition<>(x -> new GaeUserServiceProfile());
@@ -32,11 +32,11 @@ public class GaeUserServiceClient extends IndirectClient<GaeUserCredentials, Gae
     protected void clientInit() {
         service = UserServiceFactory.getUserService();
         CommonHelper.assertNotNull("service", this.service);
-        defaultRedirectActionBuilder(ctx -> {
+        defaultRedirectionActionBuilder(ctx -> {
             final String destinationUrl = computeFinalCallbackUrl(ctx);
             final String loginUrl = authDomain == null ?  service.createLoginURL(destinationUrl)
                 : service.createLoginURL(destinationUrl, authDomain);
-            return RedirectAction.redirect(loginUrl);
+            return new FoundAction(loginUrl);
         });
         defaultCredentialsExtractor(ctx -> {
             final GaeUserCredentials credentials = new GaeUserCredentials();

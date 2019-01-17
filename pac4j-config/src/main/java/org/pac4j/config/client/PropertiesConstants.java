@@ -50,7 +50,7 @@ public interface PropertiesConstants {
     String SAML_MAXIMUM_AUTHENTICATION_LIFETIME = "saml.maximumAuthenticationLifetime";
     String SAML_SERVICE_PROVIDER_ENTITY_ID = "saml.serviceProviderEntityId";
     String SAML_SERVICE_PROVIDER_METADATA_PATH = "saml.serviceProviderMetadataPath";
-    String SAML_DESTINATION_BINDING_TYPE = "saml.destinationBindingType";
+    String SAML_AUTHN_REQUEST_BINDING_TYPE = "saml.authnRequestBindingType";
     String SAML_KEYSTORE_ALIAS = "saml.keystoreAlias";
 
     String CAS_LOGIN_URL = "cas.loginUrl";
@@ -59,6 +59,7 @@ public interface PropertiesConstants {
     String OIDC_TYPE = "oidc.type";
     String OIDC_GOOGLE_TYPE = "google";
     String OIDC_AZURE_TYPE = "azure";
+    String OIDC_AZURE_TENANT = "oidc.azure.tenant";
     String OIDC_ID = "oidc.id";
     String OIDC_SECRET = "oidc.secret";
     String OIDC_SCOPE = "oidc.scope";

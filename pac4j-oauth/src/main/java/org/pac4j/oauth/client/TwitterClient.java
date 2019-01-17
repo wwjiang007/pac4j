@@ -4,7 +4,7 @@ import com.github.scribejava.apis.TwitterApi;
 import com.github.scribejava.core.builder.api.BaseApi;
 import com.github.scribejava.core.builder.api.DefaultApi10a;
 import com.github.scribejava.core.oauth.OAuth10aService;
-import org.pac4j.core.redirect.RedirectAction;
+import org.pac4j.core.exception.http.FoundAction;
 import org.pac4j.core.util.CommonHelper;
 import org.pac4j.oauth.profile.twitter.TwitterProfile;
 import org.pac4j.oauth.profile.twitter.TwitterProfileDefinition;
@@ -15,13 +15,13 @@ import org.pac4j.oauth.profile.twitter.TwitterProfileDefinition;
  * {@link #setAlwaysConfirmAuthorization(boolean)} method (<code>false</code> by default).</p>
  * <p>If your twitter oauth app allows requests for email addresses you can enable requesting an email
  * address by using the {@link #setIncludeEmail(boolean)} method (<code>false</code> by default).</p>
- * <p>It returns a {@link org.pac4j.oauth.profile.twitter.TwitterProfile}.</p>
+ * <p>It returns a {@link TwitterProfile}.</p>
  * <p>More information at https://dev.twitter.com/docs/api/1/get/account/verify_credentials</p>
  *
  * @author Jerome Leleu
  * @since 1.0.0
  */
-public class TwitterClient extends OAuth10Client<TwitterProfile> {
+public class TwitterClient extends OAuth10Client {
 
     private boolean alwaysConfirmAuthorization = false;
 
@@ -51,7 +51,7 @@ public class TwitterClient extends OAuth10Client<TwitterProfile> {
                 return false;
             }
         });
-        defaultLogoutActionBuilder((ctx, profile, targetUrl) -> RedirectAction.redirect("https://twitter.com/logout"));
+        defaultLogoutActionBuilder((ctx, profile, targetUrl) -> new FoundAction("https://twitter.com/logout"));
 
         super.clientInit();
     }

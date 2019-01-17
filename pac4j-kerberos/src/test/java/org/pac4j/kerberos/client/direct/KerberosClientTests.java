@@ -3,7 +3,7 @@ package org.pac4j.kerberos.client.direct;
 import org.junit.Before;
 import org.junit.Test;
 import org.pac4j.core.context.HttpConstants;
-import org.pac4j.core.context.J2EContext;
+import org.pac4j.core.context.JEEContext;
 import org.pac4j.core.context.MockWebContext;
 import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.core.util.TestsConstants;
@@ -68,7 +68,7 @@ public class KerberosClientTests implements TestsConstants {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         final DirectKerberosClient client = new DirectKerberosClient(new KerberosAuthenticator(krbValidator));
-        KerberosCredentials credentials = client.getCredentials(new J2EContext(request, response));
+        KerberosCredentials credentials = client.getCredentials(new JEEContext(request, response));
         assertNull(credentials);
     }
 
@@ -83,7 +83,7 @@ public class KerberosClientTests implements TestsConstants {
         assertEquals(new String(Base64.getDecoder().decode(KERBEROS_TICKET), StandardCharsets.UTF_8),
             new String(credentials.getKerberosTicket(), StandardCharsets.UTF_8));
 
-        final CommonProfile profile = client.getUserProfile(credentials, context);
+        final CommonProfile profile = (CommonProfile) client.getUserProfile(credentials, context);
         assertEquals("garry", profile.getId());
     }
 }

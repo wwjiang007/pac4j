@@ -77,7 +77,7 @@ In fact, the `AuthorizationGenerator` component can be used to do more than just
 
 For an indirect client, you must define the callback URL which will be used in the login process: after a successful login, the identity provider will redirect the user back to the application on the callback URL.
 
-On this callback URL, the "callback filter" must be defined to finish the login process.
+On this callback URL, the "callback endpoint" must be defined to finish the login process.
 
 As the callback URL can be shared between multiple clients, the callback URL can hold the information of the client (to be able to distinguish between the different clients), as a query parameter or as a path parameter.
 
@@ -161,10 +161,10 @@ The `Client` interface has the following methods:
 
 | Method | Usage |
 |--------|-------|
-| `HttpAction redirect(WebContext context) throws HttpAction` (only for indirect clients) | It redirects the user to the identity provider for login.<br />The redirection of the user to the identity provider is defined via a [`RedirectActionBuilder`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/redirect/RedirectActionBuilder.java) |
+| `RedirectionAction redirect(WebContext context) throws HttpAction` (only for indirect clients) | It redirects the user to the identity provider for login.<br />The redirection of the user to the identity provider is defined via a [`RedirectionActionBuilder`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/redirect/RedirectionActionBuilder.java) |
 | `C getCredentials(WebContext context) throws HttpAction` | It extracts the credentials from the HTTP request and validates them.<br />The extraction of the credentials are done by a [`CredentialsExtractor`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/credentials/extractor/CredentialsExtractor.java) while the credentials validation is ensured by an [`Authenticator`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/credentials/authenticator/Authenticator.java) |
-| `U getUserProfile(C credentials, WebContext context) throws HttpAction` | It builds the authenticated user profile.<br />The creation of the authenticated user profile is performed by a [`ProfileCreator`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/profile/creator/ProfileCreator.java) |
-| `RedirectAction getLogoutAction(WebContext context, U currentProfile, String targetUrl)` | It returns the redirect action to call the identity provider logout.<br />The logout redirect aciton computation is done by a [`LogoutActionBuilder`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/logout/LogoutActionBuilder.java) |
+| `CommonProfile getUserProfile(C credentials, WebContext context) throws HttpAction` | It builds the authenticated user profile.<br />The creation of the authenticated user profile is performed by a [`ProfileCreator`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/profile/creator/ProfileCreator.java) |
+| `RedirectionAction getLogoutAction(WebContext context, CommonProfile currentProfile, String targetUrl)` | It returns the redirect action to call the identity provider logout.<br />The logout redirect action computation is done by a [`LogoutActionBuilder`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/logout/LogoutActionBuilder.java) |
 {:.striped}
 
-Clients are generally populated with default sub-components: `RedirectActionBuilder`, `CredentialsExtractor`, `ProfileCreator`, `LogoutActionBuilder` and `Authenticator`, except for HTTP clients where the `Authenticator` must be defined. Sub-components can of course be changed for various [customizations](customizations.html).
+Clients are generally populated with default sub-components: `RedirectionActionBuilder`, `CredentialsExtractor`, `ProfileCreator`, `LogoutActionBuilder` and `Authenticator`, except for HTTP clients where the `Authenticator` must be defined. Sub-components can of course be changed for various [customizations](customizations.html).

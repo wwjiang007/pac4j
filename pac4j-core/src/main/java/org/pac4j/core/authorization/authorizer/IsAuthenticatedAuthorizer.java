@@ -2,7 +2,7 @@ package org.pac4j.core.authorization.authorizer;
 
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.profile.AnonymousProfile;
-import org.pac4j.core.profile.CommonProfile;
+import org.pac4j.core.profile.UserProfile;
 
 import java.util.List;
 
@@ -13,7 +13,7 @@ import java.util.List;
  * @author Jerome Leleu
  * @since 1.9.0
  */
-public class IsAuthenticatedAuthorizer<U extends CommonProfile> extends AbstractCheckAuthenticationAuthorizer<U> {
+public class IsAuthenticatedAuthorizer<U extends UserProfile> extends AbstractCheckAuthenticationAuthorizer<U> {
 
     public IsAuthenticatedAuthorizer() {}
 
@@ -29,5 +29,9 @@ public class IsAuthenticatedAuthorizer<U extends CommonProfile> extends Abstract
     @Override
     public boolean isProfileAuthorized(final WebContext context, final U profile) {
         return profile != null && !(profile instanceof AnonymousProfile);
+    }
+
+    public static <U extends UserProfile> IsAuthenticatedAuthorizer<U> isAuthenticated() {
+        return new IsAuthenticatedAuthorizer<>();
     }
 }

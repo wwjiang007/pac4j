@@ -14,9 +14,11 @@ When the user is successfully authenticated by *pac4j*, his data are retrieved f
 - a remember-me nature (`isRemembered()`)
 - a linked identifier (`getLinkedId()`)
 
-In fact, the root class of the profiles hierarchy is the [`UserProfile`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/profile/UserProfile.java). Though, it's an abstract class which is never referenced and used directly.
+In fact, the root class of the profiles hierarchy is the [`BasicUserProfile`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/profile/BasicUserProfile.java). It implements the [`UserProfile`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/profile/UserProfile.java) interface.
 
-The first user profile which must be considered is the [`CommonProfile`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/profile/CommonProfile.java) which defines the most common methods available in most profiles.
+This is for specific use cases where you want a minimal user profile.
+
+In the *pac4j* environment, the first user profile which must be considered is the [`CommonProfile`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/profile/CommonProfile.java) which defines the most common methods available in most profiles.
 
 ## 1) Identifier
 
@@ -38,6 +40,8 @@ As the identifier must be a `String`, you may use the `ProfileHelper.sanitizeIde
 ## 2) Attributes
 
 User profiles have attributes, populated from the data retrieved from the identity provider (after conversion).
+Multiple attributes with the same name and value of collection type can be (optionally) merged into a single attribute.
+In particular it can be useful for identity providers that return roles in different single-element collections.  
 
 
 ## 3) Authentication-related attributes
@@ -107,3 +111,18 @@ In fact, most clients never return a `CommonProfile`, but specific profiles like
 
 Each user profile may have a linked identifier, it's the identifier of another user profile. This way, both user profiles are linked and it allows you to authenticate via an account for a user
 and load the linked user defined in the first user, especially by using the [`LoadLinkedUserAuthorizationGenerator`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/authorization/generator/LoadLinkedUserAuthorizationGenerator.java).
+
+## 11) Profile manager
+
+The profile manager is meant to deal with the user profile: it can be used to save or restore it.
+
+By default, the profile manager is the [`ProfileMamager`](https://github.com/pac4j/pac4j/blob/master/pac4j-core/src/main/java/org/pac4j/core/profile/ProfileManager.java) component.
+
+In some *pac4j* implementations, there are specific profile managers: `UndertowProfileManager`, `ShiroProfileManager`, etc.
+
+A custom profile manager can be instantiated via two factories:
+
+- `setProfileManagerFactory(final Function<WebContext, ProfileManager> factory)`
+- `setProfileManagerFactory2(final BiFunction<WebContext, SessionStore<WebContext>, ProfileManager> factory)`.
+
+It can be set at a components level (like for the logics) or at the `Config` level.

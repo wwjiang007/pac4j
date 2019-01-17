@@ -7,14 +7,17 @@ import org.pac4j.core.client.Clients;
 import org.pac4j.core.client.finder.ClientFinder;
 import org.pac4j.core.client.finder.DefaultCallbackClientFinder;
 import org.pac4j.core.config.Config;
+import org.pac4j.core.context.ContextHelper;
 import org.pac4j.core.context.Pac4jConstants;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.credentials.Credentials;
-import org.pac4j.core.exception.HttpAction;
+import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.exception.http.SeeOtherAction;
+import org.pac4j.core.exception.http.FoundAction;
 import org.pac4j.core.http.adapter.HttpActionAdapter;
-import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.core.profile.ProfileManager;
+import org.pac4j.core.profile.UserProfile;
 
 import java.util.List;
 
@@ -89,7 +92,7 @@ public class DefaultCallbackLogic<R, C extends WebContext> extends AbstractExcep
             final Credentials credentials = foundClient.getCredentials(context);
             logger.debug("credentials: {}", credentials);
 
-            final CommonProfile profile = foundClient.getUserProfile(credentials, context);
+            final UserProfile profile = foundClient.getUserProfile(credentials, context);
             logger.debug("profile: {}", profile);
             saveUserProfile(context, config, profile, saveInSession, multiProfile, renewSession);
             action = redirectToOriginallyRequestedUrl(context, defaultUrl);
@@ -98,12 +101,12 @@ public class DefaultCallbackLogic<R, C extends WebContext> extends AbstractExcep
             return handleException(e, httpActionAdapter, context);
         }
 
-        return httpActionAdapter.adapt(action.getCode(), context);
+        return httpActionAdapter.adapt(action, context);
     }
 
-    protected void saveUserProfile(final C context, final Config config, final CommonProfile profile,
+    protected void saveUserProfile(final C context, final Config config, final UserProfile profile,
                                    final boolean saveInSession, final boolean multiProfile, final boolean renewSession) {
-        final ProfileManager manager = getProfileManager(context, config);
+        final ProfileManager manager = getProfileManager(context);
         if (profile != null) {
             manager.save(saveInSession, profile, multiProfile);
             if (renewSession) {
@@ -144,7 +147,11 @@ public class DefaultCallbackLogic<R, C extends WebContext> extends AbstractExcep
             redirectUrl = requestedUrl;
         }
         logger.debug("redirectUrl: {}", redirectUrl);
-        return HttpAction.redirect(context, redirectUrl);
+        if (ContextHelper.isPost(context)) {
+            return new SeeOtherAction(redirectUrl);
+        } else {
+            return new FoundAction(redirectUrl);
+        }
     }
 
     public ClientFinder getClientFinder() {

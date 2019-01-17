@@ -2,9 +2,8 @@ package org.pac4j.core.client;
 
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.credentials.Credentials;
-import org.pac4j.core.exception.HttpAction;
-import org.pac4j.core.profile.CommonProfile;
-import org.pac4j.core.redirect.RedirectAction;
+import org.pac4j.core.exception.http.RedirectionAction;
+import org.pac4j.core.profile.UserProfile;
 
 /**
  * <p>This interface is the core class of the library. It represents an authentication mechanism to validate user's credentials and
@@ -23,7 +22,7 @@ import org.pac4j.core.redirect.RedirectAction;
  * @author Jerome Leleu
  * @since 1.4.0
  */
-public interface Client<C extends Credentials, U extends CommonProfile> {
+public interface Client<C extends Credentials> {
 
     /**
      * Get the name of the client.
@@ -36,9 +35,9 @@ public interface Client<C extends Credentials, U extends CommonProfile> {
      * <p>Redirect to the authentication provider for an indirect client.</p>
      *
      * @param context the current web context
-     * @return the performed redirection
+     * @return the redirection to perform
      */
-    HttpAction redirect(WebContext context);
+    RedirectionAction redirect(WebContext context);
 
     /**
      * <p>Get the credentials from the web context. If no validation was made remotely (direct client), credentials must be validated at
@@ -56,7 +55,7 @@ public interface Client<C extends Credentials, U extends CommonProfile> {
      * @param context web context
      * @return the user profile
      */
-    U getUserProfile(C credentials, WebContext context);
+    UserProfile getUserProfile(C credentials, WebContext context);
 
     /**
      * <p>Return the logout action (indirect clients).</p>
@@ -64,7 +63,7 @@ public interface Client<C extends Credentials, U extends CommonProfile> {
      * @param context the current web context
      * @param currentProfile the currentProfile
      * @param targetUrl the target url after logout
-     * @return the redirection
+     * @return the redirection to perform
      */
-    RedirectAction getLogoutAction(WebContext context, U currentProfile, String targetUrl);
+    RedirectionAction getLogoutAction(WebContext context, UserProfile currentProfile, String targetUrl);
 }

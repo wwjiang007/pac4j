@@ -2,6 +2,7 @@ package org.pac4j.config.client;
 
 import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod;
 import org.junit.Test;
+import org.ldaptive.provider.jndi.JndiProvider;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.pac4j.cas.client.CasClient;
 import org.pac4j.cas.config.CasProtocol;
@@ -23,7 +24,7 @@ import org.pac4j.oauth.client.TwitterClient;
 import org.pac4j.oidc.client.GoogleOidcClient;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.saml.client.SAML2Client;
-import org.pac4j.saml.client.SAML2ClientConfiguration;
+import org.pac4j.saml.config.SAML2Configuration;
 import org.pac4j.sql.profile.service.DbProfileService;
 import org.pac4j.sql.test.tools.DbServer;
 
@@ -55,7 +56,7 @@ public final class PropertiesConfigFactoryTests implements TestsConstants {
         properties.put(SAML_PRIVATE_KEY_PASSWORD, PASSWORD);
         properties.put(SAML_KEYSTORE_PATH, PATH);
         properties.put(SAML_IDENTITY_PROVIDER_METADATA_PATH, PATH);
-        properties.put(SAML_DESTINATION_BINDING_TYPE, SAMLConstants.SAML2_REDIRECT_BINDING_URI);
+        properties.put(SAML_AUTHN_REQUEST_BINDING_TYPE, SAMLConstants.SAML2_REDIRECT_BINDING_URI);
         properties.put(SAML_KEYSTORE_ALIAS, VALUE);
         properties.put(OIDC_ID, ID);
         properties.put(OIDC_SECRET, SECRET);
@@ -89,6 +90,7 @@ public final class PropertiesConfigFactoryTests implements TestsConstants {
         properties.put(LDAP_USERS_DN, BASE_PEOPLE_DN);
         properties.put(LDAP_PRINCIPAL_ATTRIBUTE_ID, CN);
         properties.put(LDAP_ATTRIBUTES, SN + "," + ROLE);
+        properties.put(LDAP_PROVIDER_CLASS, JndiProvider.class.getName());
 
         properties.put(FORMCLIENT_LOGIN_URL.concat(".2"), PAC4J_BASE_URL);
         properties.put(FORMCLIENT_AUTHENTICATOR.concat(".2"), "ldap");
@@ -136,8 +138,8 @@ public final class PropertiesConfigFactoryTests implements TestsConstants {
 
             final SAML2Client saml2client = (SAML2Client) clients.findClient("SAML2Client");
             assertNotNull(saml2client);
-            final SAML2ClientConfiguration saml2Config = saml2client.getConfiguration();
-            assertEquals(SAMLConstants.SAML2_REDIRECT_BINDING_URI, saml2Config.getDestinationBindingType());
+            final SAML2Configuration saml2Config = saml2client.getConfiguration();
+            assertEquals(SAMLConstants.SAML2_REDIRECT_BINDING_URI, saml2Config.getAuthnRequestBindingType());
             assertEquals(VALUE, saml2Config.getKeyStoreAlias());
 
             final OidcClient oidcClient = (OidcClient) clients.findClient("OidcClient");

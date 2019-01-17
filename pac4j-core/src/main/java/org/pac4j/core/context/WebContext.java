@@ -75,20 +75,6 @@ public interface WebContext {
     String getRemoteAddr();
 
     /**
-     * Write some content in the response.
-     *
-     * @param content content to write in response
-     */
-    void writeResponseContent(String content);
-
-    /**
-     * Set the response status.
-     *
-     * @param code status code to set for the response
-     */
-    void setResponseStatus(int code);
-
-    /**
      * Add a header to the response.
      *
      * @param name  name of the header
@@ -156,7 +142,7 @@ public interface WebContext {
     void addResponseCookie(Cookie cookie);
 
     /**
-     * Get the "servlet path" (in a J2E style).
+     * Get the "servlet path" (in a JEE style).
      *
      * @return the "servlet path"
      * @since 1.8.1

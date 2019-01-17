@@ -18,7 +18,9 @@ public interface HttpConstants {
 
     int FORBIDDEN = 403;
 
-    int TEMP_REDIRECT = 302;
+    int FOUND = 302;
+
+    int SEE_OTHER = 303;
 
     int BAD_REQUEST = 400;
 
@@ -66,7 +68,7 @@ public interface HttpConstants {
 
     String ACCESS_CONTROL_ALLOW_ORIGIN_HEADER = "Access-Control-Allow-Origin";
 
-    String ACCESS_CONTROL_EXPOSE_HEADERS_HEADER = "Access-Control-Expose-Header";
+    String ACCESS_CONTROL_EXPOSE_HEADERS_HEADER = "Access-Control-Expose-Headers";
 
     String ACCESS_CONTROL_MAX_AGE_HEADER = "Access-Control-Max-Age";
 

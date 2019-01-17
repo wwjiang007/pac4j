@@ -6,9 +6,11 @@ import org.pac4j.core.context.WebContext;
 import org.pac4j.core.context.HttpConstants;
 import org.pac4j.core.context.Pac4jConstants;
 import org.pac4j.core.exception.TechnicalException;
-import org.pac4j.core.exception.HttpAction;
+import org.pac4j.core.exception.http.ForbiddenAction;
+import org.pac4j.core.exception.http.RedirectionAction;
+import org.pac4j.core.exception.http.FoundAction;
 import org.pac4j.core.logout.LogoutActionBuilder;
-import org.pac4j.core.redirect.RedirectAction;
+import org.pac4j.core.profile.UserProfile;
 import org.pac4j.core.http.ajax.AjaxRequestResolver;
 import org.pac4j.core.http.ajax.DefaultAjaxRequestResolver;
 import org.pac4j.core.util.CommonHelper;
@@ -24,7 +26,7 @@ import java.net.URISyntaxException;
  * @author Jerome Leleu
  * @since 2.0.0
  */
-public class OidcLogoutActionBuilder<U extends OidcProfile> implements LogoutActionBuilder<U> {
+public class OidcLogoutActionBuilder implements LogoutActionBuilder {
 
     protected OidcConfiguration configuration;
 
@@ -36,12 +38,12 @@ public class OidcLogoutActionBuilder<U extends OidcProfile> implements LogoutAct
     }
 
     @Override
-    public RedirectAction getLogoutAction(final WebContext context, final U currentProfile, final String targetUrl) {
+    public RedirectionAction getLogoutAction(final WebContext context, final UserProfile currentProfile, final String targetUrl) {
         final String logoutUrl = configuration.getLogoutUrl();
-        if (CommonHelper.isNotBlank(logoutUrl)) {
+        if (CommonHelper.isNotBlank(logoutUrl) && currentProfile instanceof OidcProfile) {
             try {
                 final URI endSessionEndpoint = new URI(logoutUrl);
-                final JWT idToken = currentProfile.getIdToken();
+                final JWT idToken = ((OidcProfile) currentProfile).getIdToken();
 
                 LogoutRequest logoutRequest;
                 if (CommonHelper.isNotBlank(targetUrl)) {
@@ -53,10 +55,10 @@ public class OidcLogoutActionBuilder<U extends OidcProfile> implements LogoutAct
                 if (ajaxRequestResolver.isAjax(context)) {
                     context.getSessionStore().set(context, Pac4jConstants.REQUESTED_URL, "");
                     context.setResponseHeader(HttpConstants.LOCATION_HEADER, logoutRequest.toURI().toString());
-                    throw HttpAction.status(403, context);
+                    throw ForbiddenAction.INSTANCE;
                 }
 
-                return RedirectAction.redirect(logoutRequest.toURI().toString());
+                return new FoundAction(logoutRequest.toURI().toString());
             } catch (final URISyntaxException e) {
                 throw new TechnicalException(e);
             }

@@ -28,7 +28,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Pac4j implementation extending directly the {@link AbstractMessageEncoder} as intermediate classes use the J2E HTTP response.
+ * Pac4j implementation extending directly the {@link AbstractMessageEncoder} as intermediate classes use the JEE HTTP response.
  * It's mostly a copy/paste of the source code of these intermediate opensaml classes.
  *
  * @author Misagh Moayyed
@@ -121,17 +121,17 @@ public class Pac4jHTTPPostEncoder extends AbstractMessageEncoder<SAMLObject> {
         log.debug("Invoking Velocity template to create POST body");
 
         try {
-            final VelocityContext e = new VelocityContext();
-            this.populateVelocityContext(e, messageContext, endpointURL);
+            final VelocityContext velocityContext = new VelocityContext();
+            this.populateVelocityContext(velocityContext, messageContext, endpointURL);
 
             responseAdapter.setContentType("text/html");
             responseAdapter.init();
 
             final OutputStreamWriter out = responseAdapter.getOutputStreamWriter();
-            this.getVelocityEngine().mergeTemplate(this.getVelocityTemplateId(), "UTF-8", e, out);
+            this.getVelocityEngine().mergeTemplate(this.getVelocityTemplateId(), "UTF-8", velocityContext, out);
             out.flush();
-        } catch (Exception var6) {
-            throw new MessageEncodingException("Error creating output document", var6);
+        } catch (Exception e) {
+            throw new MessageEncodingException("Error creating output document", e);
         }
     }
 

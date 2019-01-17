@@ -6,15 +6,18 @@ import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.opensaml.saml.metadata.resolver.ChainingMetadataResolver;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;
 import org.opensaml.saml.saml2.core.AuthnRequest;
+import org.opensaml.saml.saml2.core.LogoutRequest;
 import org.opensaml.saml.saml2.encryption.Decrypter;
 import org.pac4j.core.client.IndirectClient;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.exception.TechnicalException;
+import org.pac4j.core.state.StateGenerator;
 import org.pac4j.core.util.CommonHelper;
+import org.pac4j.saml.config.SAML2Configuration;
 import org.pac4j.saml.context.SAML2ContextProvider;
-import org.pac4j.saml.context.SAML2MessageContext;
 import org.pac4j.saml.context.SAMLContextProvider;
 import org.pac4j.saml.credentials.SAML2Credentials;
+import org.pac4j.saml.credentials.extractor.SAML2CredentialsExtractor;
 import org.pac4j.saml.credentials.authenticator.SAML2Authenticator;
 import org.pac4j.saml.crypto.CredentialProvider;
 import org.pac4j.saml.crypto.DefaultSignatureSigningParametersProvider;
@@ -24,34 +27,33 @@ import org.pac4j.saml.crypto.KeyStoreDecryptionProvider;
 import org.pac4j.saml.crypto.SAML2SignatureTrustEngineProvider;
 import org.pac4j.saml.crypto.SignatureSigningParametersProvider;
 import org.pac4j.saml.logout.SAML2LogoutActionBuilder;
+import org.pac4j.saml.logout.impl.SAML2LogoutMessageReceiver;
+import org.pac4j.saml.logout.impl.SAML2LogoutProfileHandler;
+import org.pac4j.saml.logout.impl.SAML2LogoutRequestMessageSender;
+import org.pac4j.saml.logout.impl.SAML2LogoutValidator;
 import org.pac4j.saml.metadata.SAML2IdentityProviderMetadataResolver;
 import org.pac4j.saml.metadata.SAML2MetadataResolver;
 import org.pac4j.saml.metadata.SAML2ServiceProviderMetadataResolver;
-import org.pac4j.saml.profile.SAML2Profile;
-import org.pac4j.saml.redirect.SAML2RedirectActionBuilder;
-import org.pac4j.saml.sso.SAML2ProfileHandler;
-import org.pac4j.saml.sso.SAML2ResponseValidator;
-import org.pac4j.saml.sso.impl.SAML2DefaultResponseValidator;
-import org.pac4j.saml.sso.impl.SAML2WebSSOMessageReceiver;
-import org.pac4j.saml.sso.impl.SAML2WebSSOMessageSender;
-import org.pac4j.saml.sso.impl.SAML2WebSSOProfileHandler;
+import org.pac4j.saml.redirect.SAML2RedirectionActionBuilder;
+import org.pac4j.saml.profile.api.SAML2ProfileHandler;
+import org.pac4j.saml.profile.api.SAML2ResponseValidator;
+import org.pac4j.saml.sso.impl.*;
+import org.pac4j.saml.state.SAML2StateGenerator;
 import org.pac4j.saml.util.Configuration;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class is the client to authenticate users with a SAML2 Identity Provider. This implementation relies on the Web
- * Browser SSO profile with HTTP-POST binding. (http://docs.oasis-open.org/security/saml/v2.0/saml-profiles-2.0-os.pdf).
+ * This class is the client to authenticate and logout users with a SAML2 Identity Provider.
  *
  * @author Michael Remond
  * @author Misagh Moayyed
  * @author Ruochao Zheng
+ * @author Jerome Leleu
  * @since 1.5.0
  */
-public class SAML2Client extends IndirectClient<SAML2Credentials, SAML2Profile> {
-
-    public static final String SAML_RELAY_STATE_ATTRIBUTE = "samlRelayState";
+public class SAML2Client extends IndirectClient<SAML2Credentials> {
 
     protected CredentialProvider credentialProvider;
 
@@ -61,7 +63,11 @@ public class SAML2Client extends IndirectClient<SAML2Credentials, SAML2Profile> 
 
     protected SAML2ProfileHandler<AuthnRequest> profileHandler;
 
-    protected SAML2ResponseValidator responseValidator;
+    protected SAML2ProfileHandler<LogoutRequest> logoutProfileHandler;
+
+    protected SAML2ResponseValidator authnResponseValidator;
+
+    protected SAML2ResponseValidator logoutValidator;
 
     protected SAML2SignatureTrustEngineProvider signatureTrustEngineProvider;
 
@@ -71,7 +77,9 @@ public class SAML2Client extends IndirectClient<SAML2Credentials, SAML2Profile> 
 
     protected Decrypter decrypter;
 
-    protected SAML2ClientConfiguration configuration;
+    protected SAML2Configuration configuration;
+
+    protected StateGenerator stateGenerator = new SAML2StateGenerator(this);
 
     static {
         CommonHelper.assertNotNull("parserPool", Configuration.getParserPool());
@@ -82,7 +90,7 @@ public class SAML2Client extends IndirectClient<SAML2Credentials, SAML2Profile> 
 
     public SAML2Client() { }
 
-    public SAML2Client(final SAML2ClientConfiguration configuration) {
+    public SAML2Client(final SAML2Configuration configuration) {
         this.configuration = configuration;
     }
 
@@ -103,32 +111,46 @@ public class SAML2Client extends IndirectClient<SAML2Credentials, SAML2Profile> 
         initSignatureTrustEngineProvider(metadataManager);
         initSAMLResponseValidator();
         initSAMLProfileHandler();
+        initSAMLLogoutResponseValidator();
+        initSAMLLogoutProfileHandler();
 
-        defaultRedirectActionBuilder(new SAML2RedirectActionBuilder(this));
-        defaultCredentialsExtractor(ctx -> {
-            final SAML2MessageContext samlContext = this.contextProvider.buildContext(ctx);
-            final SAML2Credentials credentials = (SAML2Credentials) this.profileHandler.receive(samlContext);
-            return credentials;
-        });
-        defaultAuthenticator(new SAML2Authenticator(this.configuration.getAttributeAsId()));
-        defaultLogoutActionBuilder(new SAML2LogoutActionBuilder<>(this));
+        defaultRedirectionActionBuilder(new SAML2RedirectionActionBuilder(this));
+        defaultCredentialsExtractor(new SAML2CredentialsExtractor(this));
+        defaultAuthenticator(new SAML2Authenticator(this.configuration.getAttributeAsId(), this.configuration.getMappedAttributes()));
+        defaultLogoutActionBuilder(new SAML2LogoutActionBuilder(this));
     }
 
     protected void initSAMLProfileHandler() {
         this.profileHandler = new SAML2WebSSOProfileHandler(
                 new SAML2WebSSOMessageSender(this.signatureSigningParametersProvider,
-                        this.configuration.getDestinationBindingType(),
+                        this.configuration.getAuthnRequestBindingType(),
+                        true,
                         this.configuration.isAuthnRequestSigned()),
-                new SAML2WebSSOMessageReceiver(this.responseValidator));
+                new SAML2WebSSOMessageReceiver(this.authnResponseValidator));
+    }
+
+    protected void initSAMLLogoutProfileHandler() {
+        this.logoutProfileHandler = new SAML2LogoutProfileHandler(
+            new SAML2LogoutRequestMessageSender(this.signatureSigningParametersProvider,
+                this.configuration.getSpLogoutRequestBindingType(), false, this.configuration.isSpLogoutRequestSigned()),
+            new SAML2LogoutMessageReceiver(this.logoutValidator));
+    }
+
+    protected void initSAMLLogoutResponseValidator() {
+        this.logoutValidator = new SAML2LogoutValidator(this.signatureTrustEngineProvider,
+            this.decrypter, this.configuration.getLogoutHandler());
+        this.logoutValidator.setAcceptedSkew(this.configuration.getAcceptedSkew());
     }
 
     protected void initSAMLResponseValidator() {
         // Build the SAML response validator
-        this.responseValidator = new SAML2DefaultResponseValidator(
+        this.authnResponseValidator = new SAML2AuthnResponseValidator(
                 this.signatureTrustEngineProvider,
                 this.decrypter,
+                this.configuration.getLogoutHandler(),
                 this.configuration.getMaximumAuthenticationLifetime(),
                 this.configuration.isWantsAssertionsSigned());
+        this.authnResponseValidator.setAcceptedSkew(this.configuration.getAcceptedSkew());
     }
 
     protected void initSignatureTrustEngineProvider(final MetadataResolver metadataManager) {
@@ -186,17 +208,13 @@ public class SAML2Client extends IndirectClient<SAML2Credentials, SAML2Profile> 
         return metadataManager;
     }
 
-    public String getStateParameter(final WebContext webContext) {
-        final String relayState = (String) webContext.getSessionStore().get(webContext, SAML_RELAY_STATE_ATTRIBUTE);
-        // clean from session after retrieving it
-        if (relayState != null) {
-            webContext.getSessionStore().set(webContext, SAML_RELAY_STATE_ATTRIBUTE, "");
-        }
-        return (relayState == null) ? computeFinalCallbackUrl(webContext) : relayState;
+    @Override
+    public void notifySessionRenewal(final String oldSessionId, final WebContext context) {
+        configuration.findLogoutHandler().renewSession(oldSessionId, context);
     }
 
-    public final SAML2ResponseValidator getResponseValidator() {
-        return this.responseValidator;
+    public SAML2ResponseValidator getAuthnResponseValidator() {
+        return this.authnResponseValidator;
     }
 
     public final SAML2MetadataResolver getServiceProviderMetadataResolver() {
@@ -215,11 +233,11 @@ public class SAML2Client extends IndirectClient<SAML2Credentials, SAML2Profile> 
         return this.spMetadataResolver.getEntityId();
     }
 
-    public void setConfiguration(final SAML2ClientConfiguration configuration) {
+    public void setConfiguration(final SAML2Configuration configuration) {
         this.configuration = configuration;
     }
 
-    public final SAML2ClientConfiguration getConfiguration() {
+    public final SAML2Configuration getConfiguration() {
         return this.configuration;
     }
 
@@ -237,5 +255,22 @@ public class SAML2Client extends IndirectClient<SAML2Credentials, SAML2Profile> 
 
     public SAML2SignatureTrustEngineProvider getSignatureTrustEngineProvider() {
         return signatureTrustEngineProvider;
+    }
+
+    public StateGenerator getStateGenerator() {
+        return stateGenerator;
+    }
+
+    public void setStateGenerator(final StateGenerator stateGenerator) {
+        CommonHelper.assertNotNull("stateGenerator", stateGenerator);
+        this.stateGenerator = stateGenerator;
+    }
+
+    public SAML2ProfileHandler<LogoutRequest> getLogoutProfileHandler() {
+        return logoutProfileHandler;
+    }
+
+    public void setLogoutProfileHandler(final SAML2ProfileHandler<LogoutRequest> logoutProfileHandler) {
+        this.logoutProfileHandler = logoutProfileHandler;
     }
 }

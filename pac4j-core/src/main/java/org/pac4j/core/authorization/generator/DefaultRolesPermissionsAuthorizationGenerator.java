@@ -1,7 +1,7 @@
 package org.pac4j.core.authorization.generator;
 
 import org.pac4j.core.context.WebContext;
-import org.pac4j.core.profile.CommonProfile;
+import org.pac4j.core.profile.UserProfile;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -12,7 +12,7 @@ import java.util.Collection;
  * @author Jerome Leleu
  * @since 1.8.0
  */
-public class DefaultRolesPermissionsAuthorizationGenerator<U extends CommonProfile> implements AuthorizationGenerator<U> {
+public class DefaultRolesPermissionsAuthorizationGenerator implements AuthorizationGenerator {
 
     private final Collection<String> defaultRoles;
 
@@ -38,7 +38,7 @@ public class DefaultRolesPermissionsAuthorizationGenerator<U extends CommonProfi
     }
 
     @Override
-    public U generate(final WebContext context, final U profile) {
+    public UserProfile generate(final WebContext context, final UserProfile profile) {
         if (defaultRoles != null) {
             profile.addRoles(defaultRoles);
         }

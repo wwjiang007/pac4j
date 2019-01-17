@@ -9,10 +9,13 @@ import org.pac4j.core.client.MockIndirectClient;
 import org.pac4j.core.client.finder.ClientFinder;
 import org.pac4j.core.client.finder.DefaultCallbackClientFinder;
 import org.pac4j.core.config.Config;
-import org.pac4j.core.context.J2EContext;
+import org.pac4j.core.context.JEEContext;
 import org.pac4j.core.context.Pac4jConstants;
 import org.pac4j.core.credentials.MockCredentials;
 import org.pac4j.core.exception.TechnicalException;
+import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.exception.http.SeeOtherAction;
+import org.pac4j.core.exception.http.FoundAction;
 import org.pac4j.core.http.adapter.HttpActionAdapter;
 import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.core.util.TestsConstants;
@@ -35,17 +38,17 @@ import static org.junit.Assert.assertTrue;
  */
 public final class DefaultCallbackLogicTests implements TestsConstants {
 
-    private DefaultCallbackLogic<Object, J2EContext> logic;
+    private DefaultCallbackLogic<Object, JEEContext> logic;
 
     protected MockHttpServletRequest request;
 
     protected MockHttpServletResponse response;
 
-    private J2EContext context;
+    private JEEContext context;
 
     private Config config;
 
-    private HttpActionAdapter<Object, J2EContext> httpActionAdapter;
+    private HttpActionAdapter<Object, JEEContext> httpActionAdapter;
 
     private String defaultUrl;
 
@@ -53,14 +56,16 @@ public final class DefaultCallbackLogicTests implements TestsConstants {
 
     private ClientFinder clientFinder;
 
+    private HttpAction action;
+
     @Before
     public void setUp() {
         logic = new DefaultCallbackLogic<>();
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
-        context = new J2EContext(request, response);
+        context = new JEEContext(request, response);
         config = new Config();
-        httpActionAdapter = (code, ctx) -> null;
+        httpActionAdapter = (act, ctx) -> { action = act; return null; };
         defaultUrl = null;
         renewSession = null;
         clientFinder = new DefaultCallbackClientFinder();
@@ -133,12 +138,22 @@ public final class DefaultCallbackLogicTests implements TestsConstants {
         assertTrue(profiles.containsValue(profile));
         assertEquals(1, profiles.size());
         assertNotEquals(newSessionId, originalSessionId);
-        assertEquals(302, response.getStatus());
-        assertEquals(Pac4jConstants.DEFAULT_URL_VALUE, response.getRedirectedUrl());
+        assertEquals(302, action.getCode());
+        assertEquals(Pac4jConstants.DEFAULT_URL_VALUE, ((FoundAction) action).getLocation());
     }
 
     @Test
     public void testCallbackWithOriginallyRequestedUrl() {
+        internalTestCallbackWithOriginallyRequestedUrl(302);
+    }
+
+    @Test
+    public void testCallbackWithOriginallyRequestedUrlAndPostRequest() {
+        request.setMethod("POST");
+        internalTestCallbackWithOriginallyRequestedUrl(303);
+    }
+
+    private void internalTestCallbackWithOriginallyRequestedUrl(final int code) {
         HttpSession session = request.getSession();
         final String originalSessionId = session.getId();
         session.setAttribute(Pac4jConstants.REQUESTED_URL, PAC4J_URL);
@@ -155,8 +170,12 @@ public final class DefaultCallbackLogicTests implements TestsConstants {
         assertTrue(profiles.containsValue(profile));
         assertEquals(1, profiles.size());
         assertNotEquals(newSessionId, originalSessionId);
-        assertEquals(302, response.getStatus());
-        assertEquals(PAC4J_URL, response.getRedirectedUrl());
+        assertEquals(code, action.getCode());
+        if (action instanceof SeeOtherAction) {
+            assertEquals(PAC4J_URL, ((SeeOtherAction) action).getLocation());
+        } else {
+            assertEquals(PAC4J_URL, ((FoundAction) action).getLocation());
+        }
     }
 
     @Test
@@ -176,7 +195,7 @@ public final class DefaultCallbackLogicTests implements TestsConstants {
         assertTrue(profiles.containsValue(profile));
         assertEquals(1, profiles.size());
         assertEquals(newSessionId, originalSessionId);
-        assertEquals(302, response.getStatus());
-        assertEquals(Pac4jConstants.DEFAULT_URL_VALUE, response.getRedirectedUrl());
+        assertEquals(302, action.getCode());
+        assertEquals(Pac4jConstants.DEFAULT_URL_VALUE, ((FoundAction) action).getLocation());
     }
 }

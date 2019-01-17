@@ -9,7 +9,7 @@ import org.junit.Test;
 import org.pac4j.core.client.Client;
 import org.pac4j.core.context.HttpConstants;
 import org.pac4j.core.context.MockWebContext;
-import org.pac4j.core.exception.HttpAction;
+import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.util.TestsConstants;
 import org.pac4j.kerberos.client.indirect.IndirectKerberosClient;
 import org.pac4j.kerberos.credentials.KerberosCredentials;
@@ -107,7 +107,7 @@ public class KerberosClientsKerbyTests implements TestsConstants {
     @Test
     public void testIndirectNoAuth() {
         // a request without "Authentication: (Negotiate|Kerberos) SomeToken" header
-        assertGetCredentialsFailsWithAuthRequired(setupIndirectKerberosClient(), MockWebContext.create(),"Perfoming a 401 HTTP action");
+        assertGetCredentialsFailsWithAuthRequired(setupIndirectKerberosClient(), MockWebContext.create(),"Performing a 401 HTTP action");
     }
 
     @Test
@@ -115,7 +115,7 @@ public class KerberosClientsKerbyTests implements TestsConstants {
         // a request with an incorrect Kerberos token, yields NULL credentials also
         final MockWebContext context = MockWebContext.create()
             .addRequestHeader(HttpConstants.AUTHORIZATION_HEADER, "Negotiate " + "AAAbbAA123");
-        assertGetCredentialsFailsWithAuthRequired(setupIndirectKerberosClient(), context, "Perfoming a 401 HTTP action");
+        assertGetCredentialsFailsWithAuthRequired(setupIndirectKerberosClient(), context, "Performing a 401 HTTP action");
     }
 
     @Test
@@ -136,13 +136,13 @@ public class KerberosClientsKerbyTests implements TestsConstants {
             kerbClient.getCredentials(context);
             fail("should throw HttpAction");
         } catch (final HttpAction e) {
-            assertEquals(401, context.getResponseStatus());
+            assertEquals(401, e.getCode());
             assertEquals("Negotiate", context.getResponseHeaders().get(HttpConstants.AUTHENTICATE_HEADER));
             assertEquals(expectedMsg, e.getMessage());
         }
     }
 
-    private void checkWithGoodTicket(Client<KerberosCredentials, KerberosProfile> client) throws Exception {
+    private void checkWithGoodTicket(Client<KerberosCredentials> client) throws Exception {
         String spnegoWebTicket = SpnegoServiceTicketHelper.getGSSTicket(clientPrincipal, clientPassword, serviceName);
 
         // mock web request
@@ -151,7 +151,7 @@ public class KerberosClientsKerbyTests implements TestsConstants {
         assertNotNull(credentials);
         System.out.println(credentials);
 
-        final KerberosProfile profile = client.getUserProfile(credentials, context);
+        final KerberosProfile profile = (KerberosProfile) client.getUserProfile(credentials, context);
         assertNotNull(profile);
         assertEquals(clientPrincipal, profile.getId());
     }

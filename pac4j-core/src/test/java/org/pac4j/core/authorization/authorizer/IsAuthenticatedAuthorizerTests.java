@@ -3,7 +3,7 @@ package org.pac4j.core.authorization.authorizer;
 import org.junit.Before;
 import org.junit.Test;
 import org.pac4j.core.context.MockWebContext;
-import org.pac4j.core.exception.HttpAction;
+import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.profile.AnonymousProfile;
 import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.core.util.TestsConstants;
@@ -74,6 +74,6 @@ public class IsAuthenticatedAuthorizerTests implements TestsConstants {
         profiles.add(new AnonymousProfile());
         ((IsAuthenticatedAuthorizer) authorizer).setRedirectionUrl(PAC4J_URL);
         TestsHelper.expectException(() -> authorizer.isAuthorized(MockWebContext.create(), profiles), HttpAction.class,
-            "Perfoming a 302 HTTP action");
+            "Performing a 302 HTTP action");
     }
 }

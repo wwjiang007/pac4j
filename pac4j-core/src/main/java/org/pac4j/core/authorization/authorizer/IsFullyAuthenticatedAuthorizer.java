@@ -2,7 +2,7 @@ package org.pac4j.core.authorization.authorizer;
 
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.profile.AnonymousProfile;
-import org.pac4j.core.profile.CommonProfile;
+import org.pac4j.core.profile.UserProfile;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ import java.util.List;
  * @author Jerome Leleu
  * @since 1.9.0
  */
-public class IsFullyAuthenticatedAuthorizer<U extends CommonProfile> extends AbstractCheckAuthenticationAuthorizer<U> {
+public class IsFullyAuthenticatedAuthorizer<U extends UserProfile> extends AbstractCheckAuthenticationAuthorizer<U> {
 
     public IsFullyAuthenticatedAuthorizer() {}
 
@@ -28,5 +28,9 @@ public class IsFullyAuthenticatedAuthorizer<U extends CommonProfile> extends Abs
     @Override
     public boolean isProfileAuthorized(final WebContext context, final U profile) {
         return profile != null && !(profile instanceof AnonymousProfile) && !profile.isRemembered();
+    }
+
+    public static <U extends UserProfile> IsFullyAuthenticatedAuthorizer<U> isFullyAuthenticated() {
+        return new IsFullyAuthenticatedAuthorizer<>();
     }
 }

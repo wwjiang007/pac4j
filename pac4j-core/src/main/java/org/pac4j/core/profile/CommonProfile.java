@@ -4,7 +4,6 @@ import org.pac4j.core.context.Pac4jConstants;
 import org.pac4j.core.profile.definition.CommonProfileDefinition;
 
 import java.net.URI;
-import java.security.Principal;
 import java.util.Locale;
 
 /**
@@ -13,9 +12,22 @@ import java.util.Locale;
  * @author Jerome Leleu
  * @since 1.3.0
  */
-public class CommonProfile extends UserProfile {
+public class CommonProfile extends BasicUserProfile {
 
     private static final long serialVersionUID = -1856159870249261877L;
+
+    public CommonProfile() {
+        this(true);
+    }
+    
+    /**
+     * Create a profile with possibility to merge attributes with the same name and collection-type values
+     * @param canMergeAttributes if true - merge attributes with the same name and collection-type values, if false - overwrite them
+     * @since 3.1.0
+     */
+    public CommonProfile(final boolean canMergeAttributes) {
+        super(canMergeAttributes);
+    }
 
     /**
      * Return the email of the user.
@@ -110,10 +122,6 @@ public class CommonProfile extends UserProfile {
      */
     public String getLocation() {
         return (String) getAttribute(CommonProfileDefinition.LOCATION);
-    }
-
-    public Principal asPrincipal() {
-        return new Pac4JPrincipal(this);
     }
 
     public boolean isExpired() {

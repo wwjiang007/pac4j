@@ -1,8 +1,8 @@
 package org.pac4j.core.authorization.authorizer;
 
 import org.pac4j.core.context.WebContext;
-import org.pac4j.core.exception.HttpAction;
-import org.pac4j.core.profile.CommonProfile;
+import org.pac4j.core.exception.http.FoundAction;
+import org.pac4j.core.profile.UserProfile;
 
 /**
  * Check the authentication of the user.
@@ -10,7 +10,7 @@ import org.pac4j.core.profile.CommonProfile;
  * @author Jerome Leleu
  * @since 1.9.0
  */
-public abstract class AbstractCheckAuthenticationAuthorizer<U extends CommonProfile> extends ProfileAuthorizer<U> {
+public abstract class AbstractCheckAuthenticationAuthorizer<U extends UserProfile> extends ProfileAuthorizer<U> {
 
     private String redirectionUrl;
 
@@ -23,7 +23,7 @@ public abstract class AbstractCheckAuthenticationAuthorizer<U extends CommonProf
     @Override
     protected boolean handleError(final WebContext context) {
         if (this.redirectionUrl != null) {
-            throw HttpAction.redirect(context, this.redirectionUrl);
+            throw new FoundAction(this.redirectionUrl);
         } else {
             return false;
         }

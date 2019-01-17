@@ -1,9 +1,10 @@
 package org.pac4j.core.engine;
 
 import org.pac4j.core.context.WebContext;
-import org.pac4j.core.exception.HttpAction;
+import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.exception.http.FoundAction;
 import org.pac4j.core.http.adapter.HttpActionAdapter;
-import org.pac4j.core.profile.ProfileManagerFactoryAware;
+import org.pac4j.core.profile.factory.ProfileManagerFactoryAware;
 import org.pac4j.core.util.CommonHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,11 +40,11 @@ public abstract class AbstractExceptionAwareLogic<R, C extends WebContext> exten
         } else if (e instanceof HttpAction) {
             final HttpAction action = (HttpAction) e;
             logger.debug("extra HTTP action required in security: {}", action.getCode());
-            return httpActionAdapter.adapt(action.getCode(), context);
+            return httpActionAdapter.adapt(action, context);
         } else {
             if (CommonHelper.isNotBlank(errorUrl)) {
-                final HttpAction action = HttpAction.redirect(context, errorUrl);
-                return httpActionAdapter.adapt(action.getCode(), context);
+                final HttpAction action = new FoundAction(errorUrl);
+                return httpActionAdapter.adapt(action, context);
             } else {
                 throw runtimeException(e);
             }

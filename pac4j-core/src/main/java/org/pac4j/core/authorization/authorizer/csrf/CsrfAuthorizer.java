@@ -1,12 +1,13 @@
 package org.pac4j.core.authorization.authorizer.csrf;
 
 import org.pac4j.core.authorization.authorizer.Authorizer;
-import org.pac4j.core.context.ContextHelper;
 import org.pac4j.core.context.Pac4jConstants;
 import org.pac4j.core.context.WebContext;
-import org.pac4j.core.profile.CommonProfile;
+import org.pac4j.core.profile.UserProfile;
 
 import java.util.List;
+
+import static org.pac4j.core.context.ContextHelper.*;
 
 /**
  * Authorizer that checks CSRF tokens.
@@ -14,13 +15,13 @@ import java.util.List;
  * @author Jerome Leleu
  * @since 1.8.0
  */
-public class CsrfAuthorizer implements Authorizer<CommonProfile> {
+public class CsrfAuthorizer implements Authorizer<UserProfile> {
 
     private String parameterName = Pac4jConstants.CSRF_TOKEN;
 
     private String headerName = Pac4jConstants.CSRF_TOKEN;
 
-    private boolean onlyCheckPostRequest = true;
+    private boolean checkAllRequests = false;
 
     public CsrfAuthorizer() {
     }
@@ -30,14 +31,14 @@ public class CsrfAuthorizer implements Authorizer<CommonProfile> {
         this.headerName = headerName;
     }
 
-    public CsrfAuthorizer(final String parameterName, final String headerName, final boolean onlyCheckPostRequest) {
+    public CsrfAuthorizer(final String parameterName, final String headerName, final boolean checkAllRequests) {
         this(parameterName, headerName);
-        this.onlyCheckPostRequest = onlyCheckPostRequest;
+        this.checkAllRequests = checkAllRequests;
     }
 
     @Override
-    public boolean isAuthorized(final WebContext context, final List<CommonProfile> profiles) {
-        final boolean checkRequest = !onlyCheckPostRequest || ContextHelper.isPost(context);
+    public boolean isAuthorized(final WebContext context, final List<UserProfile> profiles) {
+        final boolean checkRequest = checkAllRequests || isPost(context) || isPut(context) || isPatch(context) || isDelete(context);
         if (checkRequest) {
             final String parameterToken = context.getRequestParameter(parameterName);
             final String headerToken = context.getRequestHeader(headerName);
@@ -64,11 +65,11 @@ public class CsrfAuthorizer implements Authorizer<CommonProfile> {
         this.headerName = headerName;
     }
 
-    public boolean isOnlyCheckPostRequest() {
-        return onlyCheckPostRequest;
+    public boolean isCheckAllRequests() {
+        return checkAllRequests;
     }
 
-    public void setOnlyCheckPostRequest(boolean onlyCheckPostRequest) {
-        this.onlyCheckPostRequest = onlyCheckPostRequest;
+    public void setCheckAllRequests(final boolean checkAllRequests) {
+        this.checkAllRequests = checkAllRequests;
     }
 }

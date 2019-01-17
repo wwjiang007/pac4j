@@ -3,6 +3,7 @@ package org.pac4j.core.run;
 import org.pac4j.core.client.IndirectClient;
 import org.pac4j.core.context.MockWebContext;
 import org.pac4j.core.credentials.Credentials;
+import org.pac4j.core.exception.http.FoundAction;
 import org.pac4j.core.profile.*;
 import org.pac4j.core.util.JavaSerializationHelper;
 import org.pac4j.core.util.TestsConstants;
@@ -29,7 +30,7 @@ public abstract class RunClient implements TestsConstants {
     public void run() {
         final IndirectClient client = getClient();
         final MockWebContext context = MockWebContext.create();
-        final String url = client.getRedirectAction(context).getLocation();
+        final String url = ((FoundAction) client.redirect(context)).getLocation();
         logger.warn("Redirect to: \n{}", url);
         logger.warn("Use credentials: {} / {}", getLogin(), getPassword());
         if (canCancel()) {
@@ -40,7 +41,7 @@ public abstract class RunClient implements TestsConstants {
         final String returnedUrl = scanner.nextLine().trim();
         populateContextWithUrl(context, returnedUrl);
         final Credentials credentials = client.getCredentials(context);
-        final CommonProfile profile = client.getUserProfile(credentials, context);
+        final CommonProfile profile = (CommonProfile) client.getUserProfile(credentials, context);
         logger.debug("userProfile: {}", profile);
         if (profile != null || !canCancel()) {
             verifyProfile(profile);

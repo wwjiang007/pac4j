@@ -3,12 +3,12 @@ package org.pac4j.http.client.indirect;
 import org.pac4j.core.client.IndirectClient;
 import org.pac4j.core.context.HttpConstants;
 import org.pac4j.core.context.Pac4jConstants;
-import org.pac4j.core.redirect.RedirectAction;
+import org.pac4j.core.exception.http.FoundAction;
+import org.pac4j.core.exception.http.UnauthorizedAction;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.credentials.authenticator.Authenticator;
 import org.pac4j.core.exception.CredentialsException;
-import org.pac4j.core.exception.HttpAction;
-import org.pac4j.core.profile.CommonProfile;
+import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.profile.creator.ProfileCreator;
 import org.pac4j.core.credentials.UsernamePasswordCredentials;
 import org.pac4j.core.credentials.extractor.BasicAuthExtractor;
@@ -24,7 +24,7 @@ import static org.pac4j.core.util.CommonHelper.*;
  * @author Jerome Leleu
  * @since 1.8.0
  */
-public class IndirectBasicAuthClient extends IndirectClient<UsernamePasswordCredentials, CommonProfile> {
+public class IndirectBasicAuthClient extends IndirectClient<UsernamePasswordCredentials> {
 
     private String realmName = Pac4jConstants.DEFAULT_REALM_NAME;
 
@@ -48,7 +48,7 @@ public class IndirectBasicAuthClient extends IndirectClient<UsernamePasswordCred
     protected void clientInit() {
         assertNotBlank("realmName", this.realmName);
 
-        defaultRedirectActionBuilder(webContext ->  RedirectAction.redirect(computeFinalCallbackUrl(webContext)));
+        defaultRedirectionActionBuilder(webContext ->  new FoundAction(computeFinalCallbackUrl(webContext)));
         defaultCredentialsExtractor(new BasicAuthExtractor());
     }
 
@@ -67,13 +67,13 @@ public class IndirectBasicAuthClient extends IndirectClient<UsernamePasswordCred
             logger.debug("credentials : {}", credentials);
 
             if (credentials == null) {
-                throw HttpAction.unauthorized(context);
+                throw UnauthorizedAction.INSTANCE;
             }
 
             // validate credentials
             getAuthenticator().validate(credentials, context);
         } catch (final CredentialsException e) {
-            throw HttpAction.unauthorized(context);
+            throw UnauthorizedAction.INSTANCE;
         }
 
         return credentials;
@@ -91,7 +91,7 @@ public class IndirectBasicAuthClient extends IndirectClient<UsernamePasswordCred
     public String toString() {
         return toNiceString(this.getClass(), "name", getName(), "callbackUrl", this.callbackUrl,
             "callbackUrlResolver", this.callbackUrlResolver, "ajaxRequestResolver", getAjaxRequestResolver(),
-            "redirectActionBuilder", getRedirectActionBuilder(), "credentialsExtractor", getCredentialsExtractor(),
+            "redirectionActionBuilder", getRedirectionActionBuilder(), "credentialsExtractor", getCredentialsExtractor(),
             "authenticator", getAuthenticator(), "profileCreator", getProfileCreator(),
             "logoutActionBuilder", getLogoutActionBuilder(), "authorizationGenerators", getAuthorizationGenerators(),
             "realmName", this.realmName);

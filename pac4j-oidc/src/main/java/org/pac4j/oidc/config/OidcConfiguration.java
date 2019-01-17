@@ -9,6 +9,8 @@ import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 
 import org.pac4j.core.context.HttpConstants;
 import org.pac4j.core.exception.TechnicalException;
+import org.pac4j.core.state.StateGenerator;
+import org.pac4j.core.state.StaticOrRandomStateGenerator;
 import org.pac4j.core.util.CommonHelper;
 import org.pac4j.core.util.InitializableObject;
 
@@ -46,6 +48,9 @@ public class OidcConfiguration extends InitializableObject {
 
     /* default max clock skew */
     public static final int DEFAULT_MAX_CLOCK_SKEW = 30;
+
+    /* default time period advance (in seconds) for considering an access token expired */
+    public static final int DEFAULT_TOKEN_EXPIRATION_ADVANCE = 0;
 
     /* OpenID client identifier */
     private String clientId;
@@ -93,7 +98,13 @@ public class OidcConfiguration extends InitializableObject {
 
     private boolean withState;
 
-    private String stateData;
+    private StateGenerator stateGenerator = new StaticOrRandomStateGenerator();
+
+    /* checks if sessions expire with token expiration (see also `tokenExpirationAdvance`) */
+    private boolean expireSessionWithToken = false;
+
+    /** time period advance (in seconds) for considering an access token expired */
+    private int tokenExpirationAdvance = DEFAULT_TOKEN_EXPIRATION_ADVANCE;
 
     @Override
     protected void internalInit() {
@@ -286,10 +297,16 @@ public class OidcConfiguration extends InitializableObject {
         this.responseMode = responseMode;
     }
 
-    public String getLogoutUrl() {
+    public String findLogoutUrl() {
+        init();
+
         if(logoutUrl == null && getProviderMetadata().getEndSessionEndpointURI() != null) {
             return getProviderMetadata().getEndSessionEndpointURI().toString();
         }
+        return logoutUrl;
+    }
+
+    public String getLogoutUrl() {
         return logoutUrl;
     }
 
@@ -305,14 +322,31 @@ public class OidcConfiguration extends InitializableObject {
         this.withState = withState;
     }
 
-    public String getStateData() {
-        return stateData;
+    public boolean isExpireSessionWithToken() {
+        return expireSessionWithToken;
     }
 
-    public void setStateData(final String stateData) {
-        this.stateData = stateData;
+    public void setExpireSessionWithToken(boolean expireSessionWithToken) {
+        this.expireSessionWithToken = expireSessionWithToken;
     }
-    
+
+    public int getTokenExpirationAdvance() {
+        return isExpireSessionWithToken() ? tokenExpirationAdvance : -1;
+    }
+
+    public void setTokenExpirationAdvance(int tokenExpirationAdvance) {
+        this.tokenExpirationAdvance = tokenExpirationAdvance;
+    }
+
+    public StateGenerator getStateGenerator() {
+        return stateGenerator;
+    }
+
+    public void setStateGenerator(final StateGenerator stateGenerator) {
+        CommonHelper.assertNotNull("stateGenerator", stateGenerator);
+        this.stateGenerator = stateGenerator;
+    }
+
     @Override
     public String toString() {
         return CommonHelper.toNiceString(this.getClass(), "clientId", clientId, "secret", "[protected]",
@@ -321,6 +355,6 @@ public class OidcConfiguration extends InitializableObject {
             "preferredJwsAlgorithm", preferredJwsAlgorithm, "maxAge", maxAge, "maxClockSkew", maxClockSkew,
             "connectTimeout", connectTimeout, "readTimeout", readTimeout, "resourceRetriever", resourceRetriever,
             "responseType", responseType, "responseMode", responseMode, "logoutUrl", logoutUrl,
-            "withState", withState, "stateData", stateData);
+            "withState", withState, "stateGenerator", stateGenerator);
     }
 }
